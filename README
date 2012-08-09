@@ -1,0 +1,63 @@
++-----------------+
+|   Anamnesis 2   |
++-----------------+
+Anamnesis is a pooling memory manager designed to manage variables within a
+finite, fixed memory area.  It was developed to manage dynamic allocation in a
+system where resources are severely restricted.
+
++--------------+
+|   Workings   |
++--------------+
+Anamnesis maintains a 'repository' of RAM, a contiguous area in which all
+anamnesis variables are allocated.  Allocating RAM in anamnesis searches for a
+space within this repository and adds it to an internal linked list, returning
+an ID for the slot it has taken.
+
+This slot ID is synonymous with a pointer in C's memory model, except that it
+must be run through anamnesis in order to look up the actual value.
+
+This system allows anamnesis to re-order variables in order to make the most
+efficienct use of space, but it comes at a cost.  'Defragmenting' the repo moves
+the variables, so any proper C pointers you retained won't work between calls.
+This can be avoided by 1) turning off defragmentation or 2) using macros to look
+up variables at the time of use.  (2) allows for a fully dynamic system, which
+may be copied, moved, saved and restored as an atomic system, whereas (1)
+affords the user greater speed at the expense of this.  If you have a lot of 
+space in the repo then (1) is probably wise.
+
+Two macros may be used to make simple lookups of anamnesis values:
+
+#define A_G(var) a2_get(var)
+#define A(var, type) *((type*)(a2_get(var)->ptr))
+
+Obviously these may be edited for type-specific operations, but these facilitate
+fully dynamic lookups within the anamnesis system without too much trouble
+
++--------------+
+|   Benefits   |
++--------------+
+*  Static memory footprint - the repo uses a fixed size in RAM
+
+*  The ability to save/load, move, copy or otherwise manipulate the whole set of
+   variables, whilst retaining the dynamic memory managemnt capabilities of a
+   kernel.  It's quite possible, for example, to put a repo in a repo.
+
++---------------------+
+|   Using Anamnesis   |
++---------------------+
+Using anamnesis is fairly easy.  Check out the test.c file for a quick sample of
+what it can do, with associated debug output.  Basically, the process is thus:
+
+1)  Create a repository, and initialise it using a2_init and pointers to the
+    animated stuff
+
+2)  Allocate, use, free variables using the a2 prefixed versions of the normal
+    malloc, free calls.
+
+3)  Destroy the repo, ensuring that all contents are free-ed.
+
++-------------+
+|   Testing   |
++-------------+
+The makefile's written for linux, GCC.  It's pure C so ought to work on pretty
+much anything.  It's not strict C99, or may not be (I didn't code it strictly).
